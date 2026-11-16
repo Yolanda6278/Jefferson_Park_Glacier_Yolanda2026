@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 
 BASE_DIR = Path(__file__).resolve().parent
 
-INPUT_FILE = BASE_DIR / "AAR_ver0.csv"
+INPUT_FILE = BASE_DIR / "AAR_ver1.csv"
 
 OUTPUT_DIR = BASE_DIR / "figures"
 OUTPUT_DIR.mkdir(exist_ok=True)
@@ -359,15 +359,10 @@ ax.legend(
 plt.tight_layout()
 
 plt.savefig(
-    OUTPUT_DIR / "AAR_trend_ver0.png",
+    OUTPUT_DIR / "AAR_trend_ver1.png",
     dpi=300,
     bbox_inches="tight"
 )
-
-# plt.savefig(
-#     OUTPUT_DIR / "AAR_over_time.pdf",
-#     bbox_inches="tight"
-# )
 
 plt.show()
 
