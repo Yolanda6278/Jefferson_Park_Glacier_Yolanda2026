@@ -1,0 +1,5 @@
+Model,Predictor,VIF
+Calendar-year Temperature + Annual Precipitation,Annual_Temperature_Anomaly,1.0144015565082467
+Calendar-year Temperature + Annual Precipitation,Annual_Precipitation,1.0144015565082467
+Water-year Temperature + Water-year Precipitation,Water_Year_Temperature_Anomaly,1.200940318056279
+Water-year Temperature + Water-year Precipitation,Water_Year_Precipitation,1.2009403180562785

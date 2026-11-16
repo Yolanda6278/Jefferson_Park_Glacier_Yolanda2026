@@ -271,25 +271,61 @@ def perform_multiple_regression(
     # --------------------------------------------------------
     # Observed vs predicted plot
     # --------------------------------------------------------
+
     valid["Predicted_AAR"] = model.predict(X)
     valid["Residual"] = model.resid
 
-    fig, ax = plt.subplots(figsize=(7, 6))
-    ax.scatter(valid["Predicted_AAR"], valid["AAR"], s=45, alpha=0.8)
+    fig, ax = plt.subplots(figsize=(8, 6))
+
+    ax.scatter(
+        valid["Predicted_AAR"],
+        valid["AAR"],
+        s=45,
+        alpha=0.8,
+        label="Observed AAR"
+    )
 
     lower = min(valid["Predicted_AAR"].min(), valid["AAR"].min())
     upper = max(valid["Predicted_AAR"].max(), valid["AAR"].max())
-    ax.plot([lower, upper], [lower, upper], linestyle="--", color="black",
-            linewidth=1.5, label="1:1 line")
+
+    ax.plot(
+        [lower, upper],
+        [lower, upper],
+        linestyle="--",
+        color="black",
+        linewidth=1.5,
+        label="1:1 line"
+    )
 
     ax.set_xlabel("Predicted AAR", fontsize=12)
     ax.set_ylabel("Observed AAR", fontsize=12)
+
     ax.set_title(
-        f"Observed vs Predicted AAR\\n{model_name}\\n"
-        f"R² = {model.rsquared:.3f}; Adj. R² = {model.rsquared_adj:.3f}",
-        fontsize=13
+        f"Observed vs Predicted AAR\n{model_name}",
+        fontsize=14
     )
-    ax.legend()
+
+    # Model statistics
+    stats_label = (
+        f"R² = {model.rsquared:.3f}\n"
+        f"Adjusted R² = {model.rsquared_adj:.3f}\n"
+        f"Model p-value = {model.f_pvalue:.4f}"
+    )
+
+    ax.plot(
+        [],
+        [],
+        linestyle="none",
+        marker="",
+        label=stats_label
+    )
+
+    ax.legend(
+        loc="upper left",
+        frameon=True,
+        fontsize=10
+    )
+
     ax.grid(alpha=0.3)
     plt.tight_layout()
 
