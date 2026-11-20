@@ -34,8 +34,8 @@ BASE_DIR = Path(__file__).resolve().parent
 PRISM_FILE = BASE_DIR / (
     "PRISM_ppt_tmin_tmean_tmax_Preliminary_800m_197901_202610_44.6841_-121.8070.csv"
 )
-GLACIER_FILE = BASE_DIR / "glacier_area.csv"
-ACCUMULATION_FILE = BASE_DIR / "accumulation_statistics_ver1.csv"
+GLACIER_FILE = BASE_DIR / "glacier_area_19Nov.csv"
+ACCUMULATION_FILE = BASE_DIR / "accumulation_statistics_ver2_19Nov.csv"
 
 OUTPUT_DIR = BASE_DIR / "snow_glacier_temperature_output"
 OUTPUT_DIR.mkdir(exist_ok=True)

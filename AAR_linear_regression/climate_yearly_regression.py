@@ -26,7 +26,7 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
 
-AAR_FILE = BASE_DIR / "AAR_interpolation_extrapolation_16Nov.csv"
+AAR_FILE = BASE_DIR / "AAR_interpolation_extrapolation_19Nov.csv"
 PRISM_FILE = BASE_DIR / (
     "PRISM_ppt_tmin_tmean_tmax_Preliminary_800m_197901_202610_44.6841_-121.8070.csv"
 )
@@ -125,6 +125,85 @@ water_year_climate.loc[
 
 water_year_climate.index.name = "Year"
 
+# ============================================================
+# 4.5 NOVEMBER-OCTOBER CLIMATE (NOVEMBER-OCTOBER)
+# ============================================================
+
+nov_oct = climate.copy()
+
+# November-December belong to the following year
+nov_oct["Nov_Oct_Year"] = nov_oct["Year"]
+
+nov_oct.loc[
+    nov_oct["Month"] >= 11,
+    "Nov_Oct_Year"
+] += 1
+
+nov_oct_climate = nov_oct.groupby("Nov_Oct_Year").agg(
+    Nov_Oct_Temperature=("Temperature", "mean"),
+    Nov_Oct_Precipitation=("Precipitation", "sum"),
+    Nov_Oct_Temperature_Months=("Temperature", "count")
+)
+
+# Require all 12 monthly temperature values
+nov_oct_climate.loc[
+    nov_oct_climate["Nov_Oct_Temperature_Months"] != 12,
+    "Nov_Oct_Temperature"
+] = np.nan
+
+nov_oct_climate.index.name = "Year"
+
+# ============================================================
+# 4.6 WINTER PRECIPITATION (NOVEMBER-APRIL / NOVEMBER-MAY)
+# ============================================================
+
+winter_precip = climate.copy()
+
+# November-December belong to the following year
+winter_precip["Climate_Year"] = winter_precip["Year"]
+
+winter_precip.loc[
+    winter_precip["Month"] >= 11,
+    "Climate_Year"
+] += 1
+
+# November-April precipitation
+nov_apr = winter_precip[
+    winter_precip["Month"].isin([11, 12, 1, 2, 3, 4])
+].groupby("Climate_Year").agg(
+    Nov_Apr_Precipitation=("Precipitation", "sum"),
+    Nov_Apr_Precipitation_Months=("Precipitation", "count")
+)
+
+# Require all 6 months
+nov_apr.loc[
+    nov_apr["Nov_Apr_Precipitation_Months"] != 6,
+    "Nov_Apr_Precipitation"
+] = np.nan
+
+
+# November-May precipitation
+nov_may = winter_precip[
+    winter_precip["Month"].isin([11, 12, 1, 2, 3, 4, 5])
+].groupby("Climate_Year").agg(
+    Nov_May_Precipitation=("Precipitation", "sum"),
+    Nov_May_Precipitation_Months=("Precipitation", "count")
+)
+
+# Require all 7 months
+nov_may.loc[
+    nov_may["Nov_May_Precipitation_Months"] != 7,
+    "Nov_May_Precipitation"
+] = np.nan
+
+
+# Combine both precipitation periods
+winter_precip_climate = nov_apr.join(
+    nov_may,
+    how="outer"
+)
+
+winter_precip_climate.index.name = "Year"
 
 # ============================================================
 # 5. TEMPERATURE NORMALISATION (ANOMALIES)
@@ -139,12 +218,20 @@ water_year_baseline = water_year_climate.loc[
     BASELINE_START:BASELINE_END, "Water_Year_Temperature"
 ].mean()
 
+nov_oct_baseline = nov_oct_climate.loc[
+    BASELINE_START:BASELINE_END, "Nov_Oct_Temperature"
+].mean()
+
 annual_climate["Annual_Temperature_Anomaly"] = (
     annual_climate["Annual_Temperature"] - annual_baseline
 )
 
 water_year_climate["Water_Year_Temperature_Anomaly"] = (
     water_year_climate["Water_Year_Temperature"] - water_year_baseline
+)
+
+nov_oct_climate["Nov_Oct_Temperature_Anomaly"] = (
+    nov_oct_climate["Nov_Oct_Temperature"] - nov_oct_baseline
 )
 
 print("\\n===== TEMPERATURE BASELINES =====")
@@ -156,7 +243,13 @@ print(f"Water-year mean ({BASELINE_START}-{BASELINE_END}): {water_year_baseline:
 # 6. COMBINE AND EXPORT CLIMATE DATA
 # ============================================================
 
-climate_summary = annual_climate.join(water_year_climate, how="outer").sort_index()
+climate_summary = (
+    annual_climate
+    .join(water_year_climate, how="outer")
+    .join(nov_oct_climate, how="outer")
+    .join(winter_precip_climate, how="outer")
+    .sort_index()
+)
 
 climate_summary.to_csv(OUTPUT_DIR / "Climate_summary_normalised.csv")
 
@@ -406,7 +499,20 @@ result = perform_regression(
 if result is not None:
     regression_results.append(result)
 
-# 3) AAR vs annual precipitation (retained)
+# 3) AAR vs November-October temperature anomaly
+result = perform_regression(
+    merged,
+    x_column="Nov_Oct_Temperature_Anomaly",
+    x_label="Temperature anomaly (°C)",
+    output_name="AAR_vs_Nov_Oct_Temperature_Anomaly",
+    point_color="darkorange",
+    plot_title="AAR vs November-October Temperature Average"
+)
+
+if result is not None:
+    regression_results.append(result)
+
+# 4) AAR vs annual precipitation (retained)
 result = perform_regression(
     merged,
     x_column="Annual_Precipitation",
@@ -419,6 +525,32 @@ if result is not None:
 
 # Summer temperature and winter precipitation are intentionally not run.
 
+# 5) AAR vs November-April precipitation
+result = perform_regression(
+    merged,
+    x_column="Nov_Apr_Precipitation",
+    x_label="November-April precipitation (mm)",
+    output_name="AAR_vs_Nov_Apr_Precipitation",
+    point_color="royalblue",
+    plot_title="AAR vs November-April Precipitation"
+)
+
+if result is not None:
+    regression_results.append(result)
+
+
+# 6) AAR vs November-May precipitation
+result = perform_regression(
+    merged,
+    x_column="Nov_May_Precipitation",
+    x_label="November-May precipitation (mm)",
+    output_name="AAR_vs_Nov_May_Precipitation",
+    point_color="teal",
+    plot_title="AAR vs November-May Precipitation"
+)
+
+if result is not None:
+    regression_results.append(result)
 
 # ============================================================
 # 13. EXPORT REGRESSION RESULTS

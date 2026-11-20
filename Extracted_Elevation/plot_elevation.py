@@ -11,7 +11,7 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
 
-ELEVATION_FILE = BASE_DIR / "extracted_average_shape_elevation.csv"
+ELEVATION_FILE = BASE_DIR / "extracted_average_shape_elevation_19Nov.csv"
 
 OUTPUT_DIR = BASE_DIR / "output_average_elevation"
 OUTPUT_DIR.mkdir(exist_ok=True)
@@ -110,7 +110,7 @@ plt.tight_layout()
 # 5. SAVE FIGURE
 # ============================================================
 
-OUTPUT_FILE = OUTPUT_DIR / "Jefferson_Park_Accumulation_Area_Mean_Elevation_Regression.png"
+OUTPUT_FILE = OUTPUT_DIR / "Jefferson_Park_Accumulation_Area_Mean_Elevation_Regression_19Nov.png"
 
 plt.savefig(
     OUTPUT_FILE,

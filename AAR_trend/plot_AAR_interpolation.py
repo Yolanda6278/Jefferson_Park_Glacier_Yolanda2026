@@ -18,15 +18,15 @@ import matplotlib.pyplot as plt
 
 BASE_DIR = Path(__file__).resolve().parent
 
-ACCUMULATION_FILE = BASE_DIR / "accumulation_statistics_ver1.csv"
-GLACIER_FILE = BASE_DIR / "glacier_area.csv"
+ACCUMULATION_FILE = BASE_DIR / "accumulation_statistics_ver2_19Nov.csv"
+GLACIER_FILE = BASE_DIR / "glacier_area_19Nov.csv"
 
 OUTPUT_DIR = BASE_DIR / "figures"
 OUTPUT_DIR.mkdir(exist_ok=True)
 
 START_YEAR = 1985
 END_YEAR = 2026
-AAR_FILE = BASE_DIR / "AAR_interpolation_extrapolation_16Nov.csv"
+AAR_FILE = BASE_DIR / "AAR_interpolation_extrapolation_19Nov.csv"
 
 
 # ============================================================
@@ -250,7 +250,7 @@ ax.scatter(min_row["YEAR"], min_row["AAR"], color="red", s=100, zorder=5)
 ax.annotate(
     f'Min AAR ({int(min_row["YEAR"])}, {min_row["AAR"]:.2f})',
     xy=(min_row["YEAR"], min_row["AAR"]),
-    xytext=(1990, 0.18),
+    xytext=(2025, 0.08),
     arrowprops=dict(
         arrowstyle="->",
         color="gray"
@@ -261,7 +261,7 @@ ax.annotate(
 )
 
 # Background labels
-ax.text(1986, 0.95, "AAR > 0.6", color="darkgreen", fontsize=12, fontweight="bold")
+ax.text(1986, 0.91, "AAR > 0.6", color="darkgreen", fontsize=12, fontweight="bold")
 ax.text(1986, 0.05, "AAR < 0.3", color="darkred", fontsize=12, fontweight="bold")
 
 # Mark extrapolation periods
@@ -280,12 +280,12 @@ ax.axvspan(
 )
 
 ax.text(
-    (1985 + first_mapped_year) / 2, 0.86,
+    (1985 + first_mapped_year) / 2, 0.72,
     "Extrapolation", color="dimgray",
     fontsize=9, ha="center", va="center"
 )
 ax.text(
-    (last_mapped_year + 2026) / 2, 0.86,
+    (last_mapped_year + 2026) / 2, 0.72,
     "Extrapolation", color="dimgray",
     fontsize=9, ha="center", va="center"
 )
@@ -305,15 +305,14 @@ ax.grid(True, linestyle="--", alpha=0.3)
 ax.legend(loc="upper right", fontsize=10)
 
 plt.tight_layout()
-plt.savefig(OUTPUT_DIR / "AAR_interpolation_extrapolation.png", dpi=300, bbox_inches="tight")
+plt.savefig(OUTPUT_DIR / "AAR_interpolation_extrapolation_19Nov.png", dpi=300, bbox_inches="tight")
 plt.show()
-
 
 # ============================================================
 # 8. Export annual data
 # ============================================================
 
-output_csv = OUTPUT_DIR / "AAR_interpolation_extrapolation.csv"
+output_csv = OUTPUT_DIR / "AAR_interpolation_extrapolation_19Nov.csv"
 df.to_csv(output_csv, index=False)
 
 
@@ -331,5 +330,5 @@ print(f"Mapped glacier area years: {list(glacier['YEAR'].astype(int))}")
 print(f"Interpolation period: {first_mapped_year}-{last_mapped_year}")
 print(f"Extrapolation periods: {START_YEAR}-{first_mapped_year - 1} and {last_mapped_year + 1}-{END_YEAR}")
 print("\\nFiles saved:")
-print(f"Figure: {OUTPUT_DIR / 'AAR_interpolation_extrapolation.png'}")
+print(f"Figure: {OUTPUT_DIR / 'AAR_interpolation_extrapolation_19Nov.png'}")
 print(f"CSV:    {output_csv}")
