@@ -56,14 +56,53 @@ fig, ax = plt.subplots(figsize=(10, 6))
 
 
 # Observed data
+# Split the line at the missing year 2012.
+
+BLUE = "#1f77b4"
+
+# Line before missing year
+df_before = df[df["YEAR"] <= 2011]
+
 ax.plot(
-    x,
-    y,
+    df_before["YEAR"],
+    df_before["MEAN"],
+    color=BLUE,
     marker="o",
     linewidth=1.8,
     markersize=5,
     label="Mean elevation"
 )
+
+# Line after missing year
+df_after = df[df["YEAR"] >= 2013]
+
+ax.plot(
+    df_after["YEAR"],
+    df_after["MEAN"],
+    color=BLUE,
+    marker="o",
+    linewidth=1.8,
+    markersize=5
+)
+
+# Dashed connection across missing year 2012
+before = df.loc[df["YEAR"] == 2011]
+after = df.loc[df["YEAR"] == 2013]
+
+if not before.empty and not after.empty:
+    ax.plot(
+        [2011, 2013],
+        [
+            before["MEAN"].iloc[0],
+            after["MEAN"].iloc[0]
+        ],
+        color="#8C8177",
+        linestyle="--",
+        linewidth=1.6,
+        alpha=0.95,
+        zorder=3,
+        label="Connection across missing year (2012)"
+    )
 
 
 # Regression trendline
@@ -71,6 +110,7 @@ ax.plot(
     x,
     y_pred,
     linestyle="--",
+    color="#FF7F0E",
     linewidth=2,
     label=(
         f"Linear trend: {slope:.2f} m/year\n"

@@ -23,6 +23,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 from scipy.stats import linregress
+from matplotlib.lines import Line2D
 
 
 # ------------------------------------------------------------
@@ -193,18 +194,52 @@ acc_temp.to_csv(
 
 fig, ax = plt.subplots(figsize=(13, 8))
 
-# Accumulation-area line: connects observed annual values.
-# Years absent from the CSV (e.g. 2012) remain gaps in the data;
-# no missing values are interpolated.
+# Accumulation-area line:
+# Split the line at the missing year 2012.
+
+# Grey line before the missing year
+acc_before = acc[acc["Year"] <= 2011]
+
 ax.plot(
-    acc["Year"],
-    acc["Accumulation_Area_m2"],
+    acc_before["Year"],
+    acc_before["Accumulation_Area_m2"],
     color="0.35",
     linewidth=1.3,
     alpha=0.85,
     zorder=2,
     label="Accumulation area"
 )
+
+# Grey line after the missing year
+acc_after = acc[acc["Year"] >= 2013]
+
+ax.plot(
+    acc_after["Year"],
+    acc_after["Accumulation_Area_m2"],
+    color="0.35",
+    linewidth=1.3,
+    alpha=0.85,
+    zorder=2
+)
+
+# Dashed line connecting 2011 and 2013 across missing data
+before = acc.loc[acc["Year"] == 2011]
+after = acc.loc[acc["Year"] == 2013]
+
+if not before.empty and not after.empty:
+    ax.plot(
+        [2011, 2013],
+        [
+            before["Accumulation_Area_m2"].iloc[0],
+            after["Accumulation_Area_m2"].iloc[0]
+        ],
+        color="#E57373",  
+        linestyle="--",
+        linewidth=1,
+        alpha=0.9,
+        zorder=3,
+        label="Missing year (2012)"
+    )
 
 # Linear trend for annual accumulation/snow extent.
 # Fit only to years with measured values; missing years are not filled.
@@ -251,22 +286,44 @@ sc = ax.scatter(
     zorder=4
 )
 
-# Glacier extent: black line and black markers.
+# Glacier extent: grey line with black x markers
 ax.plot(
     glacier["Year"],
     glacier["Glacier_Area_m2"],
-    color="black",
-    linewidth=1.6,
-    marker="o",
-    markersize=7,
-    markerfacecolor="black",
-    markeredgecolor="black",
-    zorder=3,
-    label="Glacier extent"
+    color="#282828",
+    linewidth=2.0,
+    marker="x",
+    markersize=8,
+    markeredgewidth=2.0,
+    zorder=3
 )
 
+# Label glacier extent observation years
+for _, row in glacier.iterrows():
+
+    year = int(row["Year"])
+
+    # Special position for 1988: place label below the marker
+    if year == 1988:
+        offset = (0, -12)
+        va = "top"
+    else:
+        offset = (0, 8)
+        va = "bottom"
+
+    ax.annotate(
+        str(year),
+        (row["Year"], row["Glacier_Area_m2"]),
+        xytext=offset,
+        textcoords="offset points",
+        ha="center",
+        va=va,
+        fontsize=10
+    )
+
 ax.set_title(
-    "Variation in Accumulation Area and Glacier Extent Through Time",
+    "Variation in Accumulation Area and Glacier Extent Through Time" \
+    "\nJefferson Park Glacier",
     fontsize=16,
     fontweight="bold",
     pad=14
@@ -299,9 +356,57 @@ cbar.set_label(
 )
 
 # Legend for the two area series.
-ax.legend(loc="upper right", frameon=True, framealpha=0.95)
+# Custom legend
+legend_elements = [
+    Line2D(
+        [0], [0],
+        color="0.65",
+        marker="o",
+        markerfacecolor="white",
+        markeredgecolor="0.35",
+        markersize=7,
+        linewidth=1.3,
+        label="Snow Area (m²)"
+    ),
 
-fig.tight_layout()
+    Line2D(
+        [0], [0],
+        color="#303030",
+        marker="x",
+        markersize=8,
+        markeredgewidth=1.5,
+        linewidth=1.5,
+        label="Glacier Area (m²)"
+    ),
+
+    Line2D(
+        [0], [0],
+        color="#E57373",
+        linestyle="--",
+        linewidth=1.6,
+        label="Year without Data"
+    ),
+
+    Line2D(
+        [0], [0],
+        color="#4A4A4A",
+        linestyle="--",
+        linewidth=2.5,
+        label="Linear trend"
+    )
+]
+
+ax.legend(
+    handles=legend_elements,
+    loc="upper center",
+    bbox_to_anchor=(0.5, -0.13),
+    ncol=4,
+    frameon=True,
+    framealpha=0.95,
+    fontsize=10
+)
+
+fig.tight_layout(rect=[0, 0.08, 1, 1])
 fig.savefig(OUTPUT_FIGURE, dpi=300, bbox_inches="tight")
 
 print("\nFigure saved to:", OUTPUT_FIGURE)
