@@ -14,6 +14,8 @@ AAR_FILE = BASE_DIR / "AAR_interpolation_extrapolation_19Nov.csv"
 
 SNOTEL_FILE = BASE_DIR / "snotel_hogg_pass_mud_ridge.csv"
 
+SNOTEL_MAY_FILE = BASE_DIR / "snotel_hogg_pass_may1st.csv"
+
 PRISM_FILE = BASE_DIR / "PRISM_ppt_tmin_tmean_tmax_Preliminary_800m_197901_202610_44.6841_-121.8070.csv"
 
 OUTPUT_DIR = BASE_DIR / "AAR_Climate_States_Statistics"
@@ -81,10 +83,57 @@ snotel_data["April_SWE_in"] = pd.to_numeric(
 
 snotel_data = snotel_data.dropna()
 
+# Sort by Year (ascending), regardless of original file order
+snotel_data = snotel_data.sort_values("Year").drop_duplicates(
+    subset="Year",
+    keep="last"
+)
+
 # Convert inches to mm
 snotel_data["April_SWE_mm"] = (
     snotel_data["April_SWE_in"] * 25.4
 )
+
+
+# ============================================================
+# 3.5 READ SNOTEL MAY 1 SWE DATA
+# ============================================================
+
+snotel_may_data = pd.read_csv(SNOTEL_MAY_FILE)
+
+# May file format: Date, SWE (in); data are in ascending order
+snotel_may_data["Date"] = pd.to_datetime(
+    snotel_may_data.iloc[:, 0],
+    errors="coerce"
+)
+
+snotel_may_data["Year"] = snotel_may_data["Date"].dt.year
+
+snotel_may_data["May_1_SWE_in"] = pd.to_numeric(
+    snotel_may_data.iloc[:, 1],
+    errors="coerce"
+)
+
+snotel_may_data = snotel_may_data[[
+    "Year",
+    "May_1_SWE_in"
+]].dropna()
+
+snotel_may_data["Year"] = snotel_may_data["Year"].astype(int)
+
+# Convert inches to mm
+snotel_may_data["May_1_SWE_mm"] = (
+    snotel_may_data["May_1_SWE_in"] * 25.4
+)
+
+# Sort by Year (ascending), regardless of original file order
+snotel_may_data = snotel_may_data.sort_values("Year").drop_duplicates(
+    subset="Year",
+    keep="last"
+)
+
+print("\nHogg Pass May 1st SWE data:")
+print(snotel_may_data.head())
 
 
 # ============================================================
@@ -213,7 +262,13 @@ merged = aar_data.merge(
 merged = merged.merge(
     snotel_data,
     on="Year",
-    how="inner"
+    how="left"
+)
+
+merged = merged.merge(
+    snotel_may_data,
+    on="Year",
+    how="left"
 )
 
 merged = merged.sort_values(
@@ -421,6 +476,12 @@ swe_stats = calculate_statistics(
     variable_name="April SWE"
 )
 
+may_swe_stats = calculate_statistics(
+    data=merged,
+    variable="May_1_SWE_mm",
+    variable_name="May 1st SWE"
+)
+
 
 # ============================================================
 # 12. COMBINE STATISTICS
@@ -430,7 +491,8 @@ statistics = pd.concat(
     [
         wya_stats,
         wya_anomaly_stats,
-        swe_stats
+        swe_stats,
+        may_swe_stats
     ],
     ignore_index=True
 )
@@ -461,12 +523,18 @@ swe_tests = perform_pairwise_tests(
     variable="April_SWE_mm"
 )
 
+may_swe_tests = perform_pairwise_tests(
+    merged,
+    variable="May_1_SWE_mm"
+)
+
 
 pvalue_results = pd.concat(
     [
         wya_tests,
         wya_anomaly_tests,
-        swe_tests
+        swe_tests,
+        may_swe_tests
     ],
     ignore_index=True
 )
@@ -477,6 +545,98 @@ print("PAIRWISE TEST RESULTS")
 print("="*60)
 
 print(pvalue_results)
+
+
+# ============================================================
+# 12.6 CREATE TEMPERATURE THRESHOLD TABLE FIGURE
+# ============================================================
+
+# Calculate the mean and standard deviation of WYA anomaly relative to
+# the 1991-2020 baseline for the two AAR states used to define thresholds.
+threshold_states = [
+    "Low AAR (<0.3)",
+    "Intermediate AAR (0.3-0.6)",
+    "High AAR (>0.6)"
+]
+
+threshold_columns = [
+    "AAR < 0.3",
+    "0.3 <= AAR <= 0.6",
+    "AAR > 0.6"
+]
+
+threshold_stats = []
+
+for state in threshold_states:
+    values = merged.loc[merged["AAR_State"] == state, "WYA_Anomaly"].dropna()
+    mean = values.mean()
+    sd = values.std()
+    threshold_stats.append([mean, sd, mean + sd, mean - sd])
+
+threshold_table_df = pd.DataFrame(
+    {
+        threshold_columns[0]: threshold_stats[0],
+        threshold_columns[1]: threshold_stats[1],
+        threshold_columns[2]: threshold_stats[2]
+    },
+    index=["Mean (x̄)", "Standard deviation (σ)", "x̄ + σ", "x̄ − σ"]
+)
+
+print("\nTemperature threshold table (WYA anomaly relative to 1991-2020):")
+print(threshold_table_df)
+
+# Create a publication-style table image
+fig, ax = plt.subplots(figsize=(10, 3.8))
+ax.axis("off")
+
+cell_text = [
+    [f"{value:.6f}" if pd.notna(value) else "NA" for value in row]
+    for row in threshold_table_df.values
+]
+
+table = ax.table(
+    cellText=cell_text,
+    rowLabels=threshold_table_df.index,
+    colLabels=threshold_table_df.columns,
+    cellLoc="center",
+    rowLoc="center",
+    loc="center"
+)
+
+table.auto_set_font_size(False)
+table.set_fontsize(13)
+table.scale(1.15, 1.8)
+
+# Style table cells
+for (row, col), cell in table.get_celld().items():
+    cell.set_edgecolor("black")
+    cell.set_linewidth(1.2)
+    if row == 0:
+        cell.set_text_props(weight="bold")
+        cell.set_facecolor("#E6E6E6")
+    elif col == -1:
+        cell.set_text_props(weight="bold")
+        cell.set_facecolor("#F2F2F2")
+
+ax.set_title(
+    "Water Year Temperature Anomaly Thresholds by AAR State\n(1991–2020 baseline)",
+    fontsize=16,
+    fontweight="bold",
+    pad=20
+)
+
+plt.tight_layout()
+
+threshold_table_file = OUTPUT_DIR / "WYA_Anomaly_Temperature_Threshold_Table.png"
+plt.savefig(threshold_table_file, dpi=300, bbox_inches="tight")
+plt.close(fig)
+
+# Also export the numerical table
+threshold_table_csv = OUTPUT_DIR / "WYA_Anomaly_Temperature_Threshold_Table.csv"
+threshold_table_df.to_csv(threshold_table_csv)
+
+print(f"\nTemperature anomaly threshold table image saved to:\n{threshold_table_file}")
+print(f"Temperature anomaly threshold table CSV saved to:\n{threshold_table_csv}")
 
 
 # ============================================================
@@ -510,7 +670,7 @@ print(pvalue_file)
 # 14. EXPORT MERGED DATA
 # ============================================================
 
-merged_file = OUTPUT_DIR / "Merged_AAR_WYA_April_SWE.csv"
+merged_file = OUTPUT_DIR / "Merged_AAR_WYA_April_May_1st_SWE.csv"
 
 merged.to_csv(
     merged_file,
@@ -883,7 +1043,7 @@ ax.set_ylabel(
 )
 
 ax.set_title(
-    "April SWE by AAR State",
+    "April Mean SWE by AAR State (Hogg Pass)",
     fontsize=16,
     fontweight="bold"
 )
@@ -942,6 +1102,136 @@ plt.show()
 
 
 # ============================================================
+# 16.5 PLOT MAY 1st SWE
+# ============================================================
+
+fig, ax = plt.subplots(
+    figsize=(9, 6)
+)
+
+
+may_swe_box_data = [
+    merged.loc[
+        merged["AAR_State"] == state,
+        "May_1_SWE_mm"
+    ].dropna()
+    for state in state_order
+]
+
+
+box = ax.boxplot(
+    may_swe_box_data,
+    tick_labels=wya_labels,
+    patch_artist=True,
+    widths=0.55,
+    showmeans=True,
+    meanprops={
+        "marker": "D",
+        "markerfacecolor": "black",
+        "markeredgecolor": "black",
+        "markersize": 6
+    }
+)
+
+
+for patch, color in zip(
+    box["boxes"],
+    colors
+):
+    patch.set_facecolor(color)
+    patch.set_alpha(0.7)
+
+
+# Individual points
+np.random.seed(42)
+
+for i, group in enumerate(
+    may_swe_box_data,
+    start=1
+):
+
+    jitter = np.random.normal(
+        0,
+        0.04,
+        size=len(group)
+    )
+
+    ax.scatter(
+        np.full(len(group), i) + jitter,
+        group,
+        color="black",
+        alpha=0.6,
+        s=35,
+        zorder=3
+    )
+
+
+ax.set_ylabel(
+    "May 1st Snow Water Equivalent (mm)",
+    fontsize=14,
+    fontweight="bold"
+)
+
+ax.set_title(
+    "May 1st SWE by AAR State (Hogg Pass)",
+    fontsize=16,
+    fontweight="bold"
+)
+
+ax.grid(
+    axis="y",
+    linestyle="-",
+    alpha=0.3
+)
+
+ax.tick_params(
+    axis="both",
+    labelsize=12
+)
+
+# Pairwise p-values
+p_text = (
+    "Welch's t-test (Holm-adjusted)\n"
+    f"Low vs Intermediate: "
+    f"{format_p_value(may_swe_tests.iloc[0]['Adjusted_p_value'])}\n"
+    f"Low vs High: "
+    f"{format_p_value(may_swe_tests.iloc[1]['Adjusted_p_value'])}\n"
+    f"Intermediate vs High: "
+    f"{format_p_value(may_swe_tests.iloc[2]['Adjusted_p_value'])}"
+)
+
+
+ax.text(
+    0.02,
+    0.98,
+    p_text,
+    transform=ax.transAxes,
+    fontsize=10,
+    verticalalignment="top",
+    horizontalalignment="left",
+    bbox=dict(
+        boxstyle="round",
+        facecolor="white",
+        alpha=0.85,
+        edgecolor="gray"
+    )
+)
+
+plt.tight_layout()
+
+
+may_swe_plot_file = OUTPUT_DIR / "May_1st_SWE_by_AAR_State_Hogg_Pass.png"
+
+plt.savefig(
+    may_swe_plot_file,
+    dpi=300,
+    bbox_inches="tight"
+)
+
+plt.show()
+
+
+# ============================================================
 # 17. PRINT FINAL SUMMARY
 # ============================================================
 
@@ -954,6 +1244,9 @@ print(wya_plot_file)
 
 print(f"\nApril SWE figure:")
 print(swe_plot_file)
+
+print(f"\nMay 1st SWE figure (Hogg Pass):")
+print(may_swe_plot_file)
 
 print(f"\nStatistics:")
 print(statistics_file)
