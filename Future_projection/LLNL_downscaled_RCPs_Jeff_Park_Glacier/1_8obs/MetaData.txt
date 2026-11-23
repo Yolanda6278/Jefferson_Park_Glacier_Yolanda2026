@@ -1,0 +1,22 @@
+Product:               Maurer2002 Gridded Observed
+Variables:             Tavg      
+Period:                1950Jan through 1999Dec
+Resolution:            1/8 degree
+Latitude bounds:       (44.625, 44.75)
+Longitude bounds:      (-121.875, -121.75)
+Area within bounds:    137.4 km^2 (approx)
+Dimensions:         
+ Times:                600
+ Latitudes:            1
+ Longitudes:           1
+
+Location:             (44.686728, -121.808165)
+
+Global attributes
+-----------------
+Conventions:           GDT 1.2
+authors:               E.Maurer,L.Brekke,T.Pruitt
+description:           Gridded observed data
+creation_date:         July-Sept, 2009
+institution:           Santa Clara U., U.S. Bureau of Reclamation, U.S.  Dept.  of Energy
+SurfSgnConvention:     Traditional
