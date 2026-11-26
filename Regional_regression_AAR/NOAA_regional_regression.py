@@ -264,8 +264,8 @@ def run_pooled_regression(
 
     stats_text = (
         f"N = {len(valid)}\n"
+        f"P-value = {p_value:.3g}\n"
         f"R² = {r_squared:.3f}\n"
-        f"p = {p_value:.3g}"
     )
 
     ax.text(
@@ -275,7 +275,7 @@ def run_pooled_regression(
         va="top",
         ha="left",
         fontsize=11,
-        bbox=dict(boxstyle="round, pad=0.15", facecolor="white", alpha=0.85)
+        bbox=dict(boxstyle="round", facecolor="white", alpha=0.85)
     )
 
     ax.set_xlabel(x_label, fontsize=12)
