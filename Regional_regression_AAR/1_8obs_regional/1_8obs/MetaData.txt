@@ -1,0 +1,22 @@
+Product:               Maurer2002 Gridded Observed
+Variables:             Tavg      
+ Statistics:           Spatial Mean, Spatial Standard Deviation
+Period:                1950Jan through 1999Dec
+Resolution:            1/8 degree
+Latitude bounds:       (43.5, 45.75)
+Longitude bounds:      (-122.25, -121.625)
+Area within bounds:    12375.0 km^2 (approx)
+Dimensions:         
+ Times:                600
+ Latitudes:            18
+ Longitudes:           5
+
+
+Global attributes
+-----------------
+Conventions:           GDT 1.2
+authors:               E.Maurer,L.Brekke,T.Pruitt
+description:           Gridded observed data
+creation_date:         July-Sept, 2009
+institution:           Santa Clara U., U.S. Bureau of Reclamation, U.S.  Dept.  of Energy
+SurfSgnConvention:     Traditional

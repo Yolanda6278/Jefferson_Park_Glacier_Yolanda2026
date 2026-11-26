@@ -1,0 +1,5 @@
+Climate_Variable,Climate_Key,N_Glacier_Year_Observations,N_Glaciers,N_Years,Slope,Intercept,R_squared,p_value,Slope_SE,First_Year,Last_Year,Plot,Matched_Data
+May-October average temperature,May_Oct_Temperature,198,5,41,-0.1438490358227198,0.38184057061506804,0.26808284580982245,5.657120661549775e-15,0.016977563756712312,1985,2026,May_Oct_Temperature_scatter.png,May_Oct_Temperature_matched_data.csv
+November-October average temperature,Nov_Oct_Temperature,198,5,41,-0.14497884130940442,0.3760798453199109,0.254129011748017,3.6945175665102425e-14,0.017741131807779996,1985,2026,Nov_Oct_Temperature_scatter.png,Nov_Oct_Temperature_matched_data.csv
+October-September average temperature,Oct_Sep_Temperature,198,5,41,-0.14498590058636104,0.3762593124619441,0.24922747202823392,7.086062869302243e-14,0.017974381906553254,1985,2026,Oct_Sep_Temperature_scatter.png,Oct_Sep_Temperature_matched_data.csv
+November-April precipitation,Nov_Apr_Precipitation,198,5,41,0.00022929911261241058,0.02192547751362328,0.1332870040059164,1.2342065356254985e-07,4.176553891444993e-05,1985,2026,Nov_Apr_Precipitation_scatter.png,Nov_Apr_Precipitation_matched_data.csv

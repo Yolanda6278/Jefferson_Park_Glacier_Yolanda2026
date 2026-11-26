@@ -1,0 +1,23 @@
+Product:               Bias-corrected statistically downscaled GCM data
+Variables:             tas       
+ Statistics:           Spatial Mean, Spatial Standard Deviation
+Period:                1950Jan through 2099Jan
+Resolution:            1/8 degree
+Latitude bounds:       (43.5, 45.75)
+Longitude bounds:      (-122.25, -121.625)
+Area within bounds:    12375.0 km^2 (approx)
+Dimensions:         
+ Times:                1789
+ Latitudes:            18
+ Longitudes:           5
+ Projections:          231
+
+
+Global attributes
+-----------------
+Conventions:           GDT 1.2
+authors:               Bridget Thrasher, Ed Maurer
+description:           Bias-corrected and downscaled GCM data
+creation_date:         2012
+institution:           Climate Analytics Group, Santa Clara U.
+SurfSgnConvention:     Traditional
