@@ -816,6 +816,64 @@ wya_anomaly_box_data = [
     for state in state_order
 ]
 
+# ============================================================
+# Identify and print boxplot outliers (1.5 × IQR rule)
+# ============================================================
+
+print("\n" + "="*60)
+print("OUTLIERS: WATER YEAR TEMPERATURE ANOMALY")
+print("="*60)
+
+for state in state_order:
+
+    group = merged.loc[
+        merged["AAR_State"] == state,
+        ["Year", "WYA_Anomaly"]
+    ].dropna()
+
+    values = group["WYA_Anomaly"]
+
+    # Calculate Q1, Q3 and IQR
+    Q1 = values.quantile(0.25)
+    Q3 = values.quantile(0.75)
+    IQR = Q3 - Q1
+
+    # Calculate outlier boundaries
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+
+    # Identify outliers
+    outliers = group[
+        (group["WYA_Anomaly"] < lower_bound) |
+        (group["WYA_Anomaly"] > upper_bound)
+    ].copy()
+
+    print(f"\n{state}")
+    print(f"Q1 = {Q1:.3f} °C")
+    print(f"Q3 = {Q3:.3f} °C")
+    print(f"IQR = {IQR:.3f} °C")
+    print(f"Lower bound = {lower_bound:.3f} °C")
+    print(f"Upper bound = {upper_bound:.3f} °C")
+
+    if len(outliers) == 0:
+
+        print("No outliers.")
+
+    else:
+
+        outliers["Outlier_Type"] = np.where(
+            outliers["WYA_Anomaly"] < lower_bound,
+            "Lower outlier",
+            "Upper outlier"
+        )
+
+        print("\nOutlier years and values:")
+
+        print(
+            outliers[
+                ["Year", "WYA_Anomaly", "Outlier_Type"]
+            ].to_string(index=False)
+        )
 
 box = ax.boxplot(
     wya_anomaly_box_data,
@@ -940,6 +998,415 @@ plt.savefig(
 
 
 plt.show()
+
+# ============================================================
+# 15.6 WYA ANOMALY ANALYSIS WITH OUTLIERS EXCLUDED
+# ============================================================
+
+# Identify outliers separately within each AAR state
+# using the 1.5 × IQR rule.
+
+outlier_years = []
+filtered_merged = merged.copy()
+
+print("\n" + "="*60)
+print("WYA TEMPERATURE ANOMALY OUTLIERS EXCLUDED")
+print("="*60)
+
+for state in state_order:
+
+    group = merged.loc[
+        merged["AAR_State"] == state,
+        ["Year", "WYA_Anomaly"]
+    ].dropna()
+
+    values = group["WYA_Anomaly"]
+
+    Q1 = values.quantile(0.25)
+    Q3 = values.quantile(0.75)
+    IQR = Q3 - Q1
+
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+
+    state_outliers = group[
+        (group["WYA_Anomaly"] < lower_bound) |
+        (group["WYA_Anomaly"] > upper_bound)
+    ]
+
+    outlier_years.extend(
+        state_outliers["Year"].tolist()
+    )
+
+    print(f"\n{state}")
+    print(f"Lower bound: {lower_bound:.3f} °C")
+    print(f"Upper bound: {upper_bound:.3f} °C")
+
+    if state_outliers.empty:
+
+        print("No outliers identified.")
+
+    else:
+
+        print("Outliers excluded:")
+
+        print(
+            state_outliers[
+                ["Year", "WYA_Anomaly"]
+            ].to_string(index=False)
+        )
+
+
+# Remove outlier years
+filtered_merged = filtered_merged[
+    ~filtered_merged["Year"].isin(outlier_years)
+].copy()
+
+
+print("\nNumber of observations after excluding outliers:")
+
+for state in state_order:
+
+    n = filtered_merged.loc[
+        filtered_merged["AAR_State"] == state,
+        "WYA_Anomaly"
+    ].dropna().size
+
+    print(f"{state}: n = {n}")
+
+# Recalculate statistics after outlier exclusion
+
+wya_anomaly_stats_excluded = calculate_statistics(
+    data=filtered_merged,
+    variable="WYA_Anomaly",
+    variable_name="Water Year Temperature Anomaly (outliers excluded)"
+)
+
+
+# Welch's t-test after outlier exclusion
+
+wya_anomaly_tests_excluded = perform_pairwise_tests(
+    filtered_merged,
+    variable="WYA_Anomaly"
+)
+
+
+print("\nWelch's t-test (outliers excluded):")
+
+print(
+    wya_anomaly_tests_excluded.to_string(index=False)
+)
+
+# ------------------------------------------------------------
+# Create statistics table (outliers excluded)
+# ------------------------------------------------------------
+
+threshold_stats_excluded = []
+
+for state in state_order:
+
+    values = filtered_merged.loc[
+        filtered_merged["AAR_State"] == state,
+        "WYA_Anomaly"
+    ].dropna()
+
+    mean = values.mean()
+    sd = values.std()
+
+    threshold_stats_excluded.append([
+        mean,
+        sd,
+        mean + sd,
+        mean - sd
+    ])
+
+
+threshold_table_df_excluded = pd.DataFrame(
+    {
+        threshold_columns[0]: threshold_stats_excluded[0],
+        threshold_columns[1]: threshold_stats_excluded[1]
+    },
+    index=[
+        "Mean (x̄)",
+        "Standard deviation (σ)",
+        "x̄ + σ",
+        "x̄ − σ"
+    ]
+)
+
+
+print("\nTemperature anomaly statistics (outliers excluded):")
+
+print(threshold_table_df_excluded)
+
+# Create table image
+
+fig, ax = plt.subplots(figsize=(8, 3.8))
+
+ax.axis("off")
+
+
+cell_text_excluded = [
+    [
+        f"{value:.6f}" if pd.notna(value) else "NA"
+        for value in row
+    ]
+    for row in threshold_table_df_excluded.values
+]
+
+
+table_excluded = ax.table(
+    cellText=cell_text_excluded,
+    rowLabels=threshold_table_df_excluded.index,
+    colLabels=threshold_table_df_excluded.columns,
+    cellLoc="center",
+    rowLoc="center",
+    loc="center"
+)
+
+
+table_excluded.auto_set_font_size(False)
+table_excluded.set_fontsize(13)
+table_excluded.scale(1.15, 1.8)
+
+
+for (row, col), cell in table_excluded.get_celld().items():
+
+    cell.set_edgecolor("black")
+    cell.set_linewidth(1.2)
+
+    if row == 0:
+
+        cell.set_text_props(weight="bold")
+        cell.set_facecolor("#E6E6E6")
+
+    elif col == -1:
+
+        cell.set_text_props(weight="bold")
+        cell.set_facecolor("#F2F2F2")
+
+
+ax.set_title(
+    "Water Year Temperature Anomaly Statistics by AAR State\n"
+    "(1991–2020 baseline; outliers excluded)",
+    fontsize=16,
+    fontweight="bold",
+    pad=20
+)
+
+
+plt.tight_layout()
+
+
+threshold_table_file_excluded = OUTPUT_DIR / (
+    "WYA_Anomaly_Temperature_Threshold_Table_2States_Outliers_Excluded.png"
+)
+
+
+plt.savefig(
+    threshold_table_file_excluded,
+    dpi=300,
+    bbox_inches="tight"
+)
+
+
+plt.close(fig)
+
+
+# Export CSV
+
+threshold_table_csv_excluded = OUTPUT_DIR / (
+    "WYA_Anomaly_Temperature_Threshold_Table_2States_Outliers_Excluded.csv"
+)
+
+
+threshold_table_df_excluded.to_csv(
+    threshold_table_csv_excluded
+)
+
+# ------------------------------------------------------------
+# Create boxplot (outliers excluded)
+# ------------------------------------------------------------
+
+fig, ax = plt.subplots(figsize=(9, 6))
+
+
+wya_anomaly_box_data_excluded = [
+    filtered_merged.loc[
+        filtered_merged["AAR_State"] == state,
+        "WYA_Anomaly"
+    ].dropna()
+    for state in state_order
+]
+
+
+box_excluded = ax.boxplot(
+    wya_anomaly_box_data_excluded,
+    tick_labels=wya_labels,
+    patch_artist=True,
+    widths=0.55,
+    showmeans=True,
+    showfliers=False,
+    meanprops={
+        "marker": "D",
+        "markerfacecolor": "black",
+        "markeredgecolor": "black",
+        "markersize": 6
+    }
+)
+
+
+# Box colors
+
+for patch, color in zip(
+    box_excluded["boxes"],
+    colors
+):
+
+    patch.set_facecolor(color)
+    patch.set_alpha(0.7)
+
+
+# Individual points
+
+np.random.seed(42)
+
+for i, group in enumerate(
+    wya_anomaly_box_data_excluded,
+    start=1
+):
+
+    jitter = np.random.normal(
+        0,
+        0.04,
+        size=len(group)
+    )
+
+    ax.scatter(
+        np.full(len(group), i) + jitter,
+        group,
+        color="black",
+        alpha=0.6,
+        s=35,
+        zorder=3
+    )
+
+
+# Zero anomaly reference line
+
+ax.axhline(
+    0,
+    color="gray",
+    linestyle="--",
+    linewidth=1.5,
+    alpha=0.8
+)
+
+
+ax.set_ylabel(
+    "Water Year Temperature Anomaly (°C)",
+    fontsize=14,
+    fontweight="bold"
+)
+
+
+ax.set_title(
+    "Water Year Temperature Anomaly by AAR State\n"
+    "(1991–2020 baseline; outliers excluded)",
+    fontsize=16,
+    fontweight="bold"
+)
+
+
+ax.grid(
+    axis="y",
+    linestyle="-",
+    alpha=0.3
+)
+
+
+ax.tick_params(
+    axis="both",
+    labelsize=12
+)
+
+
+# Pairwise p-values
+
+p_text_excluded = (
+    "Welch's t-test (outliers excluded)\n"
+    f"Low AAR vs High AAR: "
+    f"{format_p_value(wya_anomaly_tests_excluded.iloc[0]['Adjusted_p_value'])}"
+)
+
+
+ax.text(
+    0.98,
+    0.98,
+    p_text_excluded,
+    transform=ax.transAxes,
+    fontsize=10,
+    verticalalignment="top",
+    horizontalalignment="right",
+    bbox=dict(
+        boxstyle="round",
+        facecolor="white",
+        alpha=0.85,
+        edgecolor="gray"
+    )
+)
+
+
+plt.tight_layout()
+
+
+wya_anomaly_plot_file_excluded = OUTPUT_DIR / (
+    "WYA_Anomaly_by_AAR_2States_Outliers_Excluded.png"
+)
+
+
+plt.savefig(
+    wya_anomaly_plot_file_excluded,
+    dpi=300,
+    bbox_inches="tight"
+)
+
+
+plt.show()
+
+# ------------------------------------------------------------
+# Export sensitivity-analysis statistics and test results
+# ------------------------------------------------------------
+
+wya_anomaly_stats_excluded_file = OUTPUT_DIR / (
+    "WYA_Anomaly_Statistics_2States_Outliers_Excluded.csv"
+)
+
+
+wya_anomaly_stats_excluded.to_csv(
+    wya_anomaly_stats_excluded_file,
+    index=False
+)
+
+
+wya_anomaly_tests_excluded_file = OUTPUT_DIR / (
+    "WYA_Anomaly_Ttest_2States_Outliers_Excluded.csv"
+)
+
+
+wya_anomaly_tests_excluded.to_csv(
+    wya_anomaly_tests_excluded_file,
+    index=False
+)
+
+
+print("\nFiles saved for outlier-excluded analysis:")
+
+print(wya_anomaly_plot_file_excluded)
+print(threshold_table_file_excluded)
+print(threshold_table_csv_excluded)
+print(wya_anomaly_stats_excluded_file)
+print(wya_anomaly_tests_excluded_file)
 
 # ============================================================
 # 16. PLOT APRIL SWE

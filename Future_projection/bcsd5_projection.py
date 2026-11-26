@@ -1290,365 +1290,328 @@ plt.savefig(
 
 plt.show()
 
-# ============================================================
-# 23. PLOT RCP THRESHOLD EXCEEDANCE USING 7-YEAR MOVING AVERAGE
-#     WITH AAR < 0.3 AND 60% CROSSING YEARS
-# ============================================================
+# # ============================================================
+# # 23. PLOT PERCENTAGE OF MODELS WITH AAR < 0.3
+# # BASED ON TEMPERATURE THRESHOLDS
+# # ============================================================
 
-aar_file = BASE_DIR / "AAR_interpolation_extrapolation_19Nov.csv"
+# fig, axes = plt.subplots(
+#     2, 2,
+#     figsize=(15, 10),
+#     sharex=True,
+#     sharey=True
+# )
 
-target_percentage = 60
+# axes = axes.flatten()
 
-required_consecutive_years = 5
+# target_percentage = 60
+# required_consecutive_years = 5
 
-aar_data = pd.read_csv(aar_file)
-
-aar_data["YEAR"] = pd.to_numeric(
-    aar_data["YEAR"],
-    errors="coerce"
-)
-
-aar_data["AAR"] = pd.to_numeric(
-    aar_data["AAR"],
-    errors="coerce"
-)
-
-aar_data = aar_data.dropna(
-    subset=["YEAR", "AAR"]
-)
-
-aar_data["YEAR"] = aar_data["YEAR"].astype(int)
-
-aar_data = aar_data.sort_values("YEAR")
-
-
-# ------------------------------------------------------------
-# Calculate AAR < 0.3
-# ------------------------------------------------------------
-
-aar_low_percentage = (
-    (aar_data["AAR"] < 0.3).astype(int) * 100
-)
-
-aar_low_percentage.index = aar_data["YEAR"]
-
-aar_low_percentage = aar_low_percentage.sort_index()
-
-
-# ============================================================
-# CREATE FIGURE
-# ============================================================
-
-fig, axes = plt.subplots(
-    2, 2,
-    figsize=(14, 10),
-    sharex=True,
-    sharey=True
-)
-
-axes = axes.flatten()
-
-
-rcp_order = [
-    "RCP 2.6",
-    "RCP 4.5",
-    "RCP 6.0",
-    "RCP 8.5"
-]
-
-
-# ============================================================
-# LOOP THROUGH RCP SCENARIOS
-# ============================================================
-
-for ax, rcp_name in zip(axes, rcp_order):
-
-    models = rcp_groups[rcp_name]
-
-    n_models = len(models)
-
-
-    # --------------------------------------------------------
-    # Temperature data for this RCP
-    # --------------------------------------------------------
-
-    rcp_temperature = wya_calibrated_anomaly[models]
-
-
-    # --------------------------------------------------------
-    # Calculate annual exceedance percentages
-    # --------------------------------------------------------
-
-    rcp_exceedance = pd.DataFrame(
-        index=rcp_temperature.index
-    )
-
-
-    for threshold_name, threshold_value in thresholds.items():
-
-        rcp_exceedance[threshold_name] = (
-            (rcp_temperature > threshold_value).sum(axis=1)
-            / n_models
-            * 100
-        )
-
-
-    # ========================================================
-    # PLOT AAR < 0.3
-    # ========================================================
-
-    ax.plot(
-        aar_low_percentage.index,
-        aar_low_percentage,
-        color="blue",
-        linestyle="--",
-        linewidth=1.8,
-        label="AAR < 0.3 (%)"
-    )
-
-
-    # ========================================================
-    # PLOT TEMPERATURE THRESHOLD CURVES
-    # ========================================================
-
-    for threshold_name in thresholds.keys():
-
-        series = rcp_exceedance[threshold_name]
-
-
-        # ----------------------------------------------------
-        # Plot annual exceedance percentage
-        # ----------------------------------------------------
-
-        ax.plot(
-            series.index,
-            series,
-            color=threshold_colors[threshold_name],
-            linewidth=1.8,
-            label=threshold_name
-        )
-
-
-        # ----------------------------------------------------
-        # Find first year reaching 60% and remaining >= 60%
-        # for at least 5 consecutive years
-        # ----------------------------------------------------
-
-        crossing_year = None
-
-
-        for year in series.index:
-
-            if series.loc[year] >= target_percentage:
-
-                consecutive_years = series.loc[
-                    year:year + required_consecutive_years - 1
-                ]
-
-
-                if (
-                    len(consecutive_years)
-                    == required_consecutive_years
-
-                    and
-                    (consecutive_years >= target_percentage).all()
-                ):
-
-                    crossing_year = year
-
-                    break
-
-
-        # ----------------------------------------------------
-        # Special case:
-        # Do not mark the lowest threshold curve in RCP 2.6
-        # ----------------------------------------------------
-
-        skip_crossing = (
-            rcp_name == "RCP 2.6"
-            and threshold_name == list(thresholds.keys())[-1]
-        )
-
-
-        # ----------------------------------------------------
-        # Mark crossing point at exactly 60%
-        # ----------------------------------------------------
-
-        if crossing_year is not None and not skip_crossing:
-
-            ax.scatter(
-                crossing_year,
-                target_percentage,
-                color=threshold_colors[threshold_name],
-                edgecolor="black",
-                s=65,
-                zorder=5
-            )
-
-
-            # ------------------------------------------------
-            # Annotate crossing year
-            # ------------------------------------------------
-
-            ax.annotate(
-                str(crossing_year),
-
-                xy=(
-                    crossing_year,
-                    target_percentage
-                ),
-
-                xytext=(0, 10),
-
-                textcoords="offset points",
-
-                ha="center",
-
-                fontsize=9,
-
-                fontweight="bold",
-
-                color="black"
-            )
-
-
-            print(
-                f"{rcp_name} | {threshold_name} | "
-                f"Stable crossing year: {crossing_year}"
-            )
-
-
-        elif skip_crossing:
-
-            print(
-                f"{rcp_name} | {threshold_name} | "
-                f"Crossing annotation skipped"
-            )
-
-
-        else:
-
-            print(
-                f"{rcp_name} | {threshold_name} | "
-                f"Never reaches stable {target_percentage}%"
-            )
-
-
-    # ========================================================
-    # 60% REFERENCE LINE
-    # ========================================================
-
-    ax.axhline(
-        target_percentage,
-        color="black",
-        linestyle="--",
-        linewidth=1,
-        alpha=0.7
-    )
-
-
-    # ========================================================
-    # FORMATTING
-    # ========================================================
-
-    ax.set_title(
-        f"{rcp_name} Annual Temperature Average",
-        fontsize=14,
-        fontweight="bold"
-    )
-
-
-    # --------------------------------------------------------
-    # X-axis range
-    # --------------------------------------------------------
-
-    ax.set_xlim(
-        1970,
-        2110
-    )
-
-
-    # --------------------------------------------------------
-    # Y-axis range
-    # --------------------------------------------------------
-
-    ax.set_ylim(
-        -5,
-        105
-    )
-
-
-    # --------------------------------------------------------
-    # Ticks
-    # --------------------------------------------------------
-
-    ax.set_xticks(
-        np.arange(1980, 2101, 20)
-    )
-
-    ax.set_yticks(
-        np.arange(0, 101, 20)
-    )
-
-
-    # --------------------------------------------------------
-    # Grid
-    # --------------------------------------------------------
-
-    ax.grid(
-        alpha=0.3
-    )
-
-
-    # --------------------------------------------------------
-    # Legend
-    # --------------------------------------------------------
-
-    ax.legend(
-        loc="lower right",
-        fontsize=9,
-        title="AAR and temperature thresholds"
-    )
-
-
-# ============================================================
-# SHARED AXIS LABELS
-# ============================================================
-
-fig.supxlabel(
-    "Water Year",
-    fontsize=13
-)
-
-fig.supylabel(
-    "Percentage (%)",
-    fontsize=13
-)
-
-
-# ============================================================
-# LAYOUT
-# ============================================================
-
-plt.tight_layout()
-
-
-# ============================================================
-# SAVE FIGURE
-# ============================================================
-
-plt.savefig(
-    os.path.join(
-        output_folder,
-        "BCSD5_RCP_Temperature_Threshold_Exceedance_60percent_AAR.png"
-    ),
-    dpi=300,
-    bbox_inches="tight"
-)
-
-
-# ============================================================
-# SHOW FIGURE
-# ============================================================
-
-plt.show()
+# rcp_order = [
+#     "RCP 2.6",
+#     "RCP 4.5",
+#     "RCP 6.0",
+#     "RCP 8.5"
+# ]
+
+# for ax, rcp_name in zip(axes, rcp_order):
+
+#     models = rcp_groups[rcp_name]
+
+#     n_models = len(models)
+
+#     # --------------------------------------------------------
+#     # Temperature data for this RCP
+#     # --------------------------------------------------------
+
+#     rcp_temperature = wya_calibrated_anomaly[models]
+
+#     # --------------------------------------------------------
+#     # Calculate percentage of models associated with AAR < 0.3
+#     # based on the temperature thresholds
+#     # --------------------------------------------------------
+
+#     rcp_aar_percentage = pd.DataFrame(
+#         index=rcp_temperature.index
+#     )
+
+#     for threshold_name, threshold_value in thresholds.items():
+
+#         rcp_aar_percentage[threshold_name] = (
+#             (rcp_temperature > threshold_value).sum(axis=1)
+#             / n_models
+#             * 100
+#         )
+
+#     # --------------------------------------------------------
+#     # Plot percentage curves
+#     # --------------------------------------------------------
+
+#     for threshold_name in thresholds.keys():
+
+#         # --------------------------------------------------------
+#         # Add AAR < 0.3 line
+#         # Based on the primary temperature threshold (+0.350791°C)
+#         # --------------------------------------------------------
+
+#         aar_threshold = 0.350791
+
+#         aar_percentage = (
+#             (rcp_temperature > aar_threshold).sum(axis=1)
+#             / n_models
+#             * 100
+#         )
+
+#         ax.plot(
+#             aar_percentage.index,
+#             aar_percentage,
+#             color="black",
+#             linewidth=2.5,
+#             linestyle="-",
+#             label="AAR < 0.3"
+#         )
+
+# # --------------------------------------------------------
+# # Find first year reaching 60% and remaining >=60%
+# # for 5 consecutive years
+# # --------------------------------------------------------
+
+#         aar_crossing_year = None
+
+#         for year in aar_percentage.index:
+
+#             if aar_percentage.loc[year] >= target_percentage:
+
+#                 consecutive_years = aar_percentage.loc[
+#                     year:year + required_consecutive_years - 1
+#                 ]
+
+#                 if (
+#                     len(consecutive_years) == required_consecutive_years
+#                     and (consecutive_years >= target_percentage).all()
+#                 ):
+
+#                     aar_crossing_year = year
+#                     break
+
+# # --------------------------------------------------------
+# # Mark AAR < 0.3 crossing year
+# # --------------------------------------------------------
+
+#         if aar_crossing_year is not None:
+
+#             ax.scatter(
+#                 aar_crossing_year,
+#                 target_percentage,
+#                 color="black",
+#                 marker="o",
+#                 s=65,
+#                 zorder=6
+#             )
+
+#             ax.annotate(
+#                 str(aar_crossing_year),
+#                 xy=(aar_crossing_year, target_percentage),
+#                 xytext=(0, -18),
+#                 textcoords="offset points",
+#                 ha="center",
+#                 va="top",
+#                 fontsize=9,
+#                 color="black",
+#                 fontweight="bold"
+#             )
+
+#             print(
+#                 f"{rcp_name} | AAR < 0.3 | "
+#                 f"Stable crossing year: {aar_crossing_year}"
+#             )
+
+#         series = rcp_aar_percentage[threshold_name]
+
+#         ax.plot(
+#             series.index,
+#             series,
+#             color=threshold_colors[threshold_name],
+#             linewidth=1.8,
+#             label=threshold_name
+#         )
+
+#         # ----------------------------------------------------
+#         # Find first year reaching 60% and remaining >=60%
+#         # for 5 consecutive years
+#         # ----------------------------------------------------
+
+#         crossing_year = None
+
+#         for year in series.index:
+
+#             if series.loc[year] >= target_percentage:
+
+#                 consecutive_years = series.loc[
+#                     year:year + required_consecutive_years - 1
+#                 ]
+
+#                 if (
+#                     len(consecutive_years)
+#                     == required_consecutive_years
+#                     and
+#                     (consecutive_years >= target_percentage).all()
+#                 ):
+
+#                     crossing_year = year
+#                     break
+
+#         # ----------------------------------------------------
+#         # Skip crossing marker for lowest threshold curve
+#         # in RCP 2.6
+#         # ----------------------------------------------------
+
+#         skip_crossing = (
+#             rcp_name == "RCP 2.6"
+#             and threshold_name == list(thresholds.keys())[-1]
+#         )
+
+#         # ----------------------------------------------------
+#         # Plot crossing marker and year annotation
+#         # ----------------------------------------------------
+
+#         if crossing_year is not None and not skip_crossing:
+
+#             ax.scatter(
+#                 crossing_year,
+#                 target_percentage,
+#                 color=threshold_colors[threshold_name],
+#                 marker="o",
+#                 s=45,
+#                 zorder=5
+#             )
+
+#             ax.annotate(
+#                 str(crossing_year),
+#                 xy=(crossing_year, target_percentage),
+#                 xytext=(0, 8),
+#                 textcoords="offset points",
+#                 ha="center",
+#                 va="bottom",
+#                 fontsize=9,
+#                 color=threshold_colors[threshold_name]
+#             )
+
+#             print(
+#                 f"{rcp_name} | {threshold_name} | "
+#                 f"First stable year reaching "
+#                 f"{target_percentage}% of models with AAR < 0.3: "
+#                 f"{crossing_year}"
+#             )
+
+#         elif skip_crossing:
+
+#             print(
+#                 f"{rcp_name} | {threshold_name} | "
+#                 f"Crossing annotation skipped"
+#             )
+
+#         else:
+
+#             print(
+#                 f"{rcp_name} | {threshold_name} | "
+#                 f"Never reaches stable {target_percentage}%"
+#             )
+
+#     # --------------------------------------------------------
+#     # 60% reference line
+#     # --------------------------------------------------------
+
+#     ax.axhline(
+#         target_percentage,
+#         color="black",
+#         linestyle="--",
+#         linewidth=1.2,
+#         alpha=0.8
+#     )
+
+#     # --------------------------------------------------------
+#     # Axes formatting
+#     # --------------------------------------------------------
+
+#     ax.set_title(
+#         rcp_name,
+#         fontsize=13,
+#         fontweight="bold"
+#     )
+
+#     ax.set_xlim(1970, 2110)
+
+#     ax.set_ylim(-5, 105)
+
+#     ax.set_xticks(
+#         np.arange(1980, 2101, 20)
+#     )
+
+#     ax.set_yticks(
+#         np.arange(0, 101, 20)
+#     )
+
+#     ax.grid(
+#         True,
+#         linestyle=":",
+#         alpha=0.4
+#     )
+
+#     ax.legend(
+#         loc="lower right",
+#         fontsize=9,
+#         title="Temperature threshold"
+#     )
+
+# # ------------------------------------------------------------
+# # Shared axis labels
+# # ------------------------------------------------------------
+
+# fig.supxlabel(
+#     "Water Year",
+#     fontsize=12
+# )
+
+# fig.supylabel(
+#     "Percentage of climate models associated with AAR < 0.3 (%)",
+#     fontsize=12
+# )
+
+# fig.suptitle(
+#     "Percentage of Climate Models Projected to Have AAR < 0.3",
+#     fontsize=16,
+#     fontweight="bold",
+#     y=0.98
+# )
+
+# # ------------------------------------------------------------
+# # Layout
+# # ------------------------------------------------------------
+
+# plt.tight_layout(
+#     rect=[0.03, 0.03, 1, 0.95]
+# )
+
+# # ------------------------------------------------------------
+# # Save figure
+# # ------------------------------------------------------------
+
+# plt.savefig(
+#     os.path.join(
+#         output_folder,
+#         "Section23_Percentage_Models_AAR_below_0.3.png"
+#     ),
+#     dpi=300,
+#     bbox_inches="tight"
+# )
+
+# plt.savefig(
+#     os.path.join(
+#         output_folder,
+#         "Section23_Percentage_Models_AAR_below_0.3.pdf"
+#     ),
+#     bbox_inches="tight"
+# )
+
+# plt.show()

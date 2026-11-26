@@ -132,6 +132,7 @@ month_combinations = {
     "September-October": [9, 10],
     "September-November": [9, 10, 11],
     "May-November": [5, 6, 7, 8, 9, 10, 11],
+    "April-October": [4, 5, 6, 7, 8, 9, 10],
 }
 
 # ============================================================
@@ -324,10 +325,10 @@ def perform_regression(
 
 regression_results = []
 
-# Provide one color for each of the 12 combinations
+# Provide one color for each of the 13 combinations
 colors = [
     "crimson", "blue", "darkorange", "purple", "teal", "magenta",
-    "royalblue", "forestgreen", "sienna", "deeppink", "slateblue", "olive", "navy"
+    "royalblue", "forestgreen", "sienna", "deeppink", "slateblue", "olive", "navy", "darkred"
 ]
 
 # Iterate over ALL combinations (12 plots)

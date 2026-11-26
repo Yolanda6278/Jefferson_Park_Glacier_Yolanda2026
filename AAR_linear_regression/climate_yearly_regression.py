@@ -329,6 +329,120 @@ plt.tight_layout()
 plt.savefig(OUTPUT_DIR / "Water_Year_Temperature_Anomaly.png", dpi=300)
 plt.show()
 
+# ============================================================
+# 9.3 PRECIPITATION TIME-SERIES PLOTS
+# ============================================================
+
+# ------------------------------------------------------------
+# 1. Annual precipitation (January-December)
+# ------------------------------------------------------------
+
+plt.figure(figsize=(12, 5))
+
+plt.plot(
+    climate_summary.index,
+    climate_summary["Annual_Precipitation"],
+    linewidth=1.5,
+    marker="."
+)
+
+plt.xlabel("Year")
+plt.ylabel("Precipitation (mm)")
+plt.title("Annual Precipitation (January-December)")
+
+plt.grid(alpha=0.3)
+plt.tight_layout()
+
+plt.savefig(
+    OUTPUT_DIR / "Annual_Precipitation.png",
+    dpi=300
+)
+
+plt.show()
+
+
+# ------------------------------------------------------------
+# 2. Water-year precipitation (October-September)
+# ------------------------------------------------------------
+
+plt.figure(figsize=(12, 5))
+
+plt.plot(
+    climate_summary.index,
+    climate_summary["Water_Year_Precipitation"],
+    linewidth=1.5,
+    marker="."
+)
+
+plt.xlabel("Water year (October-September)")
+plt.ylabel("Precipitation (mm)")
+plt.title("Water-Year Precipitation (October-September)")
+
+plt.grid(alpha=0.3)
+plt.tight_layout()
+
+plt.savefig(
+    OUTPUT_DIR / "Water_Year_Precipitation.png",
+    dpi=300
+)
+
+plt.show()
+
+
+# ------------------------------------------------------------
+# 3. November-April precipitation
+# ------------------------------------------------------------
+
+plt.figure(figsize=(12, 5))
+
+plt.plot(
+    climate_summary.index,
+    climate_summary["Nov_Apr_Precipitation"],
+    linewidth=1.5,
+    marker="."
+)
+
+plt.xlabel("Year")
+plt.ylabel("Precipitation (mm)")
+plt.title("Winter Precipitation (November-April)")
+
+plt.grid(alpha=0.3)
+plt.tight_layout()
+
+plt.savefig(
+    OUTPUT_DIR / "Nov_Apr_Precipitation.png",
+    dpi=300
+)
+
+plt.show()
+
+
+# ------------------------------------------------------------
+# 4. November-May precipitation
+# ------------------------------------------------------------
+
+plt.figure(figsize=(12, 5))
+
+plt.plot(
+    climate_summary.index,
+    climate_summary["Nov_May_Precipitation"],
+    linewidth=1.5,
+    marker="."
+)
+
+plt.xlabel("Year")
+plt.ylabel("Precipitation (mm)")
+plt.title("Winter Precipitation (November-May)")
+
+plt.grid(alpha=0.3)
+plt.tight_layout()
+
+plt.savefig(
+    OUTPUT_DIR / "Nov_May_Precipitation.png",
+    dpi=300
+)
+
+plt.show()
 
 # ============================================================
 # 10. AAR TIME SERIES
@@ -551,6 +665,7 @@ result = perform_regression(
 
 if result is not None:
     regression_results.append(result)
+
 
 # ============================================================
 # 13. EXPORT REGRESSION RESULTS

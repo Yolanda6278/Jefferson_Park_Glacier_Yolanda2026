@@ -1,0 +1,3 @@
+AAR_State,Variable,n,Mean,SD,Mean_plus_SD,Mean_minus_SD
+Low AAR (<0.3),Water Year Temperature Anomaly (outliers excluded),10,0.43111111111111117,0.5142033572358241,0.9453144683469352,-0.08309224612471294
+High AAR (>=0.3),Water Year Temperature Anomaly (outliers excluded),28,-0.17597222222222225,0.6974439849478363,0.521471762725614,-0.8734162071700586

@@ -26,7 +26,7 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
 
-AAR_FILE = BASE_DIR / "AAR_interpolation_extrapolation_16Nov.csv"
+AAR_FILE = BASE_DIR / "AAR_interpolation_extrapolation_19Nov.csv"
 PRISM_FILE = BASE_DIR / (
     "PRISM_ppt_tmin_tmean_tmax_Preliminary_800m_197901_202610_44.6841_-121.8070.csv"
 )

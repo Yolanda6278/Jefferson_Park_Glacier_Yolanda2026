@@ -1,0 +1,2 @@
+Variable,Comparison,Group_1_n,Group_2_n,t_statistic,Raw_p_value,Adjusted_p_value
+WYA_Anomaly,Low AAR (<0.3) vs High AAR (>=0.3),10,28,2.900327914689564,0.008398690274803939,0.008398690274803939
