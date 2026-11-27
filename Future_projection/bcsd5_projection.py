@@ -2,6 +2,7 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 import os
+import statsmodels.formula.api as smf
 
 # ============================================================
 # 1. FILE PATHS
@@ -392,6 +393,74 @@ print(common_years.min(), "-", common_years.max())
 print("\nNumber of comparison years:")
 print(len(common_years))
 
+# ============================================================
+# CALCULATE CORRELATION STATISTICS BEFORE PLOTTING
+# ============================================================
+
+from scipy.stats import pearsonr
+
+correlation, correlation_pvalue = pearsonr(
+    prism_comparison,
+    bcsd5_mean_comparison
+)
+
+r_squared = correlation ** 2
+
+# ============================================================
+# CALCULATE TREND STATISTICS BEFORE PLOTTING
+# ============================================================
+
+from scipy.stats import linregress, pearsonr
+import statsmodels.formula.api as smf
+
+# PRISM trend
+prism_trend = linregress(
+    common_years,
+    prism_comparison
+)
+
+prism_trend_decade = prism_trend.slope * 10
+
+
+# BCSD5 trend
+bcsd5_trend = linregress(
+    common_years,
+    bcsd5_mean_comparison
+)
+
+bcsd5_trend_decade = bcsd5_trend.slope * 10
+
+
+# Correlation
+correlation, correlation_pvalue = pearsonr(
+    prism_comparison,
+    bcsd5_mean_comparison
+)
+
+r_squared = correlation ** 2
+
+
+# Trend difference regression
+trend_comparison = pd.DataFrame({
+    "Year": common_years,
+    "PRISM": prism_comparison.values,
+    "BCSD5": bcsd5_mean_comparison.values
+})
+
+trend_comparison_long = trend_comparison.melt(
+    id_vars="Year",
+    var_name="Dataset",
+    value_name="Temperature_Anomaly"
+)
+
+trend_model = smf.ols(
+    "Temperature_Anomaly ~ Year * Dataset",
+    data=trend_comparison_long
+).fit()
+
+trend_difference_pvalue = trend_model.pvalues[
+    "Year:Dataset[T.PRISM]"
+]
 
 # ============================================================
 # 14. PLOT PRISM VS BCSD5 HISTORICAL TEMPERATURE ANOMALIES
@@ -429,6 +498,53 @@ plt.plot(
     label="PRISM observation"
 )
 
+# ============================================================
+# ADD LINEAR REGRESSION TRENDS
+# ============================================================
+
+# PRISM regression line
+prism_fit = np.polyfit(
+    common_years,
+    prism_comparison,
+    1
+)
+
+prism_regression = np.polyval(
+    prism_fit,
+    common_years
+)
+
+# BCSD5 regression line
+bcsd5_fit = np.polyfit(
+    common_years,
+    bcsd5_mean_comparison,
+    1
+)
+
+bcsd5_regression = np.polyval(
+    bcsd5_fit,
+    common_years
+)
+
+# Plot regression lines
+plt.plot(
+    common_years,
+    prism_regression,
+    color="#e65715",
+    linestyle="--",
+    linewidth=2,
+    label="PRISM linear trend"
+)
+
+plt.plot(
+    common_years,
+    bcsd5_regression,
+    color="black",
+    linestyle="--",
+    linewidth=2,
+    label="BCSD5 linear trend"
+)
+
 plt.axhline(
     0,
     color="gray",
@@ -447,6 +563,66 @@ plt.title(
     "PRISM vs BCSD5 Historical Temperature Anomalies",
     fontsize=16,
     fontweight="bold"
+)
+
+# ============================================================
+# ADD TREND STATISTICS BOX (TOP RIGHT)
+# ============================================================
+
+prism_trend_value = prism_trend.slope * 10
+bcsd5_trend_value = bcsd5_trend.slope * 10
+
+trend_text = (
+    f"PRISM: {prism_trend_value:.3f} °C/decade\n"
+    f"BCSD5: {bcsd5_trend_value:.3f} °C/decade\n"
+    f"Trend difference p = {trend_difference_pvalue:.3f}"
+)
+
+ax = plt.gca()
+
+ax.text(
+    0.98,
+    0.97,
+    trend_text,
+    transform=ax.transAxes,
+    fontsize=11,
+    verticalalignment="top",
+    horizontalalignment="right",
+    bbox=dict(
+        boxstyle="round,pad=0.5",
+        facecolor="white",
+        alpha=0.9,
+        edgecolor="gray"
+    ),
+    zorder=10
+)
+
+
+# ============================================================
+# ADD CORRELATION STATISTICS BOX (BOTTOM RIGHT)
+# ============================================================
+
+correlation_text = (
+    f"Correlation (r): {correlation:.3f}\n"
+    f"R²: {r_squared:.3f}\n"
+    f"Correlation p-value: {correlation_pvalue:.4f}"
+)
+
+ax.text(
+    0.98,
+    0.03,
+    correlation_text,
+    transform=ax.transAxes,
+    fontsize=11,
+    verticalalignment="bottom",
+    horizontalalignment="right",
+    bbox=dict(
+        boxstyle="round,pad=0.5",
+        facecolor="white",
+        alpha=0.9,
+        edgecolor="gray"
+    ),
+    zorder=10
 )
 
 plt.legend()
@@ -505,15 +681,18 @@ bcsd5_trend = linregress(
 
 bcsd5_trend_decade = bcsd5_trend.slope * 10
 
-
 # ------------------------------------------------------------
-# Comparison statistics
+# Correlation statistics
 # ------------------------------------------------------------
 
-correlation = np.corrcoef(
+from scipy.stats import pearsonr
+
+correlation, correlation_pvalue = pearsonr(
     prism_comparison,
     bcsd5_mean_comparison
-)[0, 1]
+)
+
+r_squared = correlation ** 2
 
 rmse = np.sqrt(
     np.mean(
@@ -524,6 +703,86 @@ rmse = np.sqrt(
 bias = np.mean(
     bcsd5_mean_comparison - prism_comparison
 )
+
+# ============================================================
+# 15B. COMPARE PRISM AND BCSD5 WARMING TRENDS
+# ============================================================
+
+import statsmodels.formula.api as smf
+
+# ------------------------------------------------------------
+# Prepare combined dataset
+# ------------------------------------------------------------
+
+trend_comparison = pd.DataFrame({
+    "Year": common_years,
+    "PRISM": prism_comparison.values,
+    "BCSD5": bcsd5_mean_comparison.values
+})
+
+# Convert from wide to long format
+trend_comparison_long = trend_comparison.melt(
+    id_vars="Year",
+    var_name="Dataset",
+    value_name="Temperature_Anomaly"
+)
+
+# ------------------------------------------------------------
+# Regression with interaction term
+# ------------------------------------------------------------
+
+trend_model = smf.ols(
+    "Temperature_Anomaly ~ Year * Dataset",
+    data=trend_comparison_long
+).fit()
+
+print("\n" + "=" * 60)
+print("PRISM VS BCSD5 WARMING TREND COMPARISON")
+print("=" * 60)
+
+print(trend_model.summary())
+
+# ------------------------------------------------------------
+# Extract interaction term
+# ------------------------------------------------------------
+
+interaction_term = "Year:Dataset[T.PRISM]"
+
+if interaction_term in trend_model.params.index:
+    trend_difference = trend_model.params[interaction_term]
+    trend_difference_pvalue = trend_model.pvalues[interaction_term]
+
+else:
+    interaction_term = "Year:Dataset[T.BCSD5]"
+    trend_difference = trend_model.params[interaction_term]
+    trend_difference_pvalue = trend_model.pvalues[interaction_term]
+
+# Convert to °C/decade
+trend_difference_decade = trend_difference * 10
+
+print("\nTrend difference:")
+print(f"{trend_difference_decade:.3f} °C/decade")
+
+print("\nP-value for trend difference:")
+print(f"{trend_difference_pvalue:.4f}")
+
+# ------------------------------------------------------------
+# Interpretation
+# ------------------------------------------------------------
+
+if trend_difference_pvalue < 0.05:
+
+    print(
+        "\nThe warming trends of PRISM and BCSD5 "
+        "are statistically significantly different."
+    )
+
+else:
+
+    print(
+        "\nThere is no statistically significant difference "
+        "between the warming trends of PRISM and BCSD5."
+    )
 
 
 # ============================================================
@@ -1052,6 +1311,8 @@ plt.xticks(
 )
 
 plt.grid(alpha=0.3)
+
+
 
 plt.legend()
 
